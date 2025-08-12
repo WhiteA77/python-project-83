@@ -1,0 +1,24 @@
+# ruff.toml
+line-length = 120
+
+select = [
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "FBT", # flake8-boolean-trap
+    "B",   # flake8-bugbear
+    "I",   # isort
+    "UP",  # pyupgrade
+    "C4",  # flake8-comprehensions
+    "Q",   # flake8-quotes
+    "RUF", # ruff-specific rules
+    "PL",  # pylint
+]
+
+ignore = [
+    "E501",  # line too long (handled by line-length)
+    "F401",  # unused imports (sometimes needed for __all__)
+    "PLR0913", # Too many arguments
+]
+
+[isort]
+known-first-party = ["page_analyzer"]
