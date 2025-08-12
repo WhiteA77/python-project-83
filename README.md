@@ -8,4 +8,4 @@
 
 ## Ссылка на деплой
 
-<https://python-project-83-2gla.onrender.com>
+<https://python-project-83-1-tglm.onrender.com>
