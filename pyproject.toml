@@ -8,5 +8,7 @@ dependencies = [
     "flask",
     "gunicorn",
     "python-dotenv",
+    "psycopg2-binary",
+    "validators",
     "ruff"
 ]

@@ -1,49 +1,134 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <head>
+    <meta charset="utf-8">
     <title>Анализатор страниц</title>
-    <!-- Bootstrap 5 CSS CDN -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" 
-          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-    <!-- Кастомные стили -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
-</head>
-<body class="d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-3">
-        <div class="container">
-            <a class="navbar-brand" href="{{ url_for('index') }}">Анализатор страниц</a>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+      body {
+        background-color: #f8f9fa;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+      }
+      .main-card {
+        margin-top: 60px;
+        margin-bottom: 24px;
+        padding: 48px 36px;
+        background-color: #f6f7f8;
+        border-radius: 12px;
+        box-shadow: none;
+        border: 1px solid #e6e8eb;
+      }
+      .footer {
+        position: fixed;
+        bottom: 0;
+        width: 100vw;
+        padding: 8px 0;
+        background: transparent;
+      }
+      .navbar {
+        background-color: #23272b;
+      }
+      .navbar-brand, .nav-link {
+        color: #fff !important;
+        font-size: 1.2rem;
+      }
+      .nav-link {
+        font-size: 1rem;
+        color: #bdbdbd !important;
+      }
+      .nav-link.active {
+        color: #fff !important;
+        font-weight: 500;
+      }
+      .btn-primary {
+        background-color: #1677ff;
+        border-color: #1677ff;
+        font-size: 1.25rem;
+        font-weight: 500;
+        padding: 8px 32px;
+      }
+      .form-control {
+        font-size: 1.25rem;
+        padding: 10px 12px;
+      }
+      .site-title {
+        font-size: 4rem;
+        font-weight: 400;
+      }
+      .site-description {
+        font-size: 1.25rem;
+        color: #333;
+        margin-bottom: 32px;
+      }
+      @media (max-width: 768px) {
+        .main-card {
+          padding: 24px 8px;
+        }
+        .site-title {
+          font-size: 2.2rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Навбар -->
+    <nav class="navbar navbar-expand-lg mb-4">
+      <div class="container-fluid">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Анализатор страниц</a>
+        <div class="collapse navbar-collapse">
+          <ul class="navbar-nav ms-2">
+            <li class="nav-item">
+              <a class="nav-link {% if request.endpoint == 'urls' %}active{% endif %}" href="{{ url_for('urls') }}">Сайты</a>
+            </li>
+          </ul>
         </div>
+      </div>
     </nav>
 
     <main class="flex-grow-1">
-        <div class="container-lg mt-3">
-            <h1>Бесплатный анализатор веб-страниц</h1>
-            
-            <div class="row">
-                <div class="col-12 col-md-10 col-lg-8 mx-auto border rounded-3 bg-light p-5">
-                    <form action="/urls" method="post">
-                        <div class="input-group mb-3">
-                            <input type="text" name="url" placeholder="https://www.example.com" 
-                                   class="form-control form-control-lg" required>
-                            <button type="submit" class="btn btn-primary btn-lg">Проверить</button>
-                        </div>
-                    </form>
+      <div class="container d-flex justify-content-center align-items-start">
+        <div class="main-card w-100" style="max-width: 900px;">
+          <h1 class="site-title text-center mb-2">Анализатор страниц</h1>
+          <div class="site-description text-center mb-4">Бесплатно проверяйте сайты на SEO-пригодность</div>
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for category, msg in messages %}
+                <div class="alert alert-{{ category }} text-center" role="alert">
+                  {{ msg }}
                 </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+          <form method="post" class="row g-2 justify-content-center" novalidate>
+            <div class="col-lg-8 col-12">
+              <input 
+                type="text" 
+                id="url" 
+                name="url" 
+                class="form-control" 
+                placeholder="https://www.example.com" 
+                value="{{ url|default('') }}" 
+                required 
+                autofocus
+                autocomplete="off"
+              >
             </div>
+            <div class="col-lg-3 col-12">
+              <button type="submit" class="btn btn-primary w-100">ПРОВЕРИТЬ</button>
+            </div>
+          </form>
         </div>
+      </div>
     </main>
 
-    <footer class="border-top py-3 mt-5">
-        <div class="container text-center">
-            <span class="text-muted">Анализатор страниц — учебный проект Hexlet</span>
-        </div>
+    <footer class="footer text-center">
+      <a href="https://hexlet.io/" target="_blank" rel="noopener noreferrer">Hexlet</a>
     </footer>
-
-    <!-- Bootstrap 5 JS Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
-            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
-            crossorigin="anonymous"></script>
-</body>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
 </html>
