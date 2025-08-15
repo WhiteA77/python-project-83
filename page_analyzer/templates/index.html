@@ -1,134 +1,78 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ru">
-  <head>
-    <meta charset="utf-8">
-    <title>Анализатор страниц</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-      body {
-        background-color: #f8f9fa;
-        min-height: 100vh;
-        display: flex;
-        flex-direction: column;
-      }
-      .main-card {
-        margin-top: 60px;
-        margin-bottom: 24px;
-        padding: 48px 36px;
-        background-color: #f6f7f8;
-        border-radius: 12px;
-        box-shadow: none;
-        border: 1px solid #e6e8eb;
-      }
-      .footer {
-        position: fixed;
-        bottom: 0;
-        width: 100vw;
-        padding: 8px 0;
-        background: transparent;
-      }
-      .navbar {
-        background-color: #23272b;
-      }
-      .navbar-brand, .nav-link {
-        color: #fff !important;
-        font-size: 1.2rem;
-      }
-      .nav-link {
-        font-size: 1rem;
-        color: #bdbdbd !important;
-      }
-      .nav-link.active {
-        color: #fff !important;
-        font-weight: 500;
-      }
-      .btn-primary {
-        background-color: #1677ff;
-        border-color: #1677ff;
-        font-size: 1.25rem;
-        font-weight: 500;
-        padding: 8px 32px;
-      }
-      .form-control {
-        font-size: 1.25rem;
-        padding: 10px 12px;
-      }
-      .site-title {
-        font-size: 4rem;
-        font-weight: 400;
-      }
-      .site-description {
-        font-size: 1.25rem;
-        color: #333;
-        margin-bottom: 32px;
-      }
-      @media (max-width: 768px) {
-        .main-card {
-          padding: 24px 8px;
-        }
-        .site-title {
-          font-size: 2.2rem;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <!-- Навбар -->
-    <nav class="navbar navbar-expand-lg mb-4">
-      <div class="container-fluid">
-        <a class="navbar-brand" href="{{ url_for('index') }}">Анализатор страниц</a>
-        <div class="collapse navbar-collapse">
-          <ul class="navbar-nav ms-2">
-            <li class="nav-item">
-              <a class="nav-link {% if request.endpoint == 'urls' %}active{% endif %}" href="{{ url_for('urls') }}">Сайты</a>
-            </li>
-          </ul>
+<head>
+  <meta charset="utf-8">
+  <title>Анализатор страниц</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="d-flex flex-column min-vh-100 bg-white">
+
+  <!-- Навбар -->
+  <nav class="navbar navbar-expand-md navbar-dark bg-dark">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('index') }}">Анализатор страниц</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain"
+              aria-controls="navbarMain" aria-expanded="false" aria-label="Переключить навигацию">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav ms-3">
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('urls') }}">Сайты</a>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="flex-grow-1">
+    <div class="container py-4">
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, msg in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+              {{ msg }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      <!-- Хиро-карточка -->
+      <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+          <div class="card border-0 shadow-sm bg-body-tertiary rounded-3">
+            <div class="card-body p-4 p-lg-5">
+              <h1 class="display-4 fw-normal mb-2">Анализатор страниц</h1>
+              <p class="lead text-muted mb-4">Бесплатно проверяйте сайты на SEO-пригодность</p>
+              <form method="post" class="input-group input-group-lg">
+                <input
+                  type="text"
+                  class="form-control"
+                  id="url"
+                  name="url"
+                  placeholder="https://www.example.com"
+                  value="{{ url|default('') }}"
+                >
+                <button type="submit" class="btn btn-primary text-uppercase px-4">Проверить</button>
+              </form>
+            </div>
+          </div>
         </div>
       </div>
-    </nav>
 
-    <main class="flex-grow-1">
-      <div class="container d-flex justify-content-center align-items-start">
-        <div class="main-card w-100" style="max-width: 900px;">
-          <h1 class="site-title text-center mb-2">Анализатор страниц</h1>
-          <div class="site-description text-center mb-4">Бесплатно проверяйте сайты на SEO-пригодность</div>
-          {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-              {% for category, msg in messages %}
-                <div class="alert alert-{{ category }} text-center" role="alert">
-                  {{ msg }}
-                </div>
-              {% endfor %}
-            {% endif %}
-          {% endwith %}
-          <form method="post" class="row g-2 justify-content-center" novalidate>
-            <div class="col-lg-8 col-12">
-              <input 
-                type="text" 
-                id="url" 
-                name="url" 
-                class="form-control" 
-                placeholder="https://www.example.com" 
-                value="{{ url|default('') }}" 
-                required 
-                autofocus
-                autocomplete="off"
-              >
-            </div>
-            <div class="col-lg-3 col-12">
-              <button type="submit" class="btn btn-primary w-100">ПРОВЕРИТЬ</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </main>
+    </div>
+  </main>
 
-    <footer class="footer text-center">
-      <a href="https://hexlet.io/" target="_blank" rel="noopener noreferrer">Hexlet</a>
-    </footer>
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  </body>
+  <!-- Футер -->
+  <footer class="border-top py-3 mt-auto">
+    <div class="container text-center">
+      <a href="https://hexlet.io" class="link-secondary text-decoration-none">Hexlet</a>
+    </div>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

@@ -1,32 +1,62 @@
 <!doctype html>
 <html lang="ru">
-  <head>
+<head>
     <meta charset="utf-8">
-    <title>Список адресов</title>
+    <title>Сайты</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  </head>
-  <body>
-    <div class="container py-5">
-      <h1>Список адресов</h1>
-      <table class="table" data-test="urls">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>URL</th>
-            <th>Дата добавления</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for id, name, created_at in urls %}
-          <tr>
-            <td>{{ id }}</td>
-            <td><a href="{{ url_for('show_url', id=id) }}">{{ name }}</a></td>
-            <td>{{ created_at }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-      <a href="{{ url_for('index') }}">Добавить новый адрес</a>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Анализатор страниц</a>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('urls') }}">Сайты</a>
+                </li>
+            </ul>
+        </div>
     </div>
-  </body>
+</nav>
+
+<main class="flex-grow-1">
+    <div class="container my-4">
+        <h1 class="mb-4">Сайты</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                    {{ msg }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Закрыть"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <table class="table table-bordered table-hover table-sm align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Имя</th>
+                    <th scope="col">Дата последней проверки</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for id, name, last_check in urls %}
+                <tr>
+                    <td>{{ id }}</td>
+                    <td>
+                        <a href="{{ url_for('show_url', id=id) }}">{{ name }}</a>
+                    </td>
+                    <td>{{ last_check or '' }}</td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>
