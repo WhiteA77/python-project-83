@@ -40,16 +40,18 @@
                     <th scope="col">ID</th>
                     <th scope="col">Имя</th>
                     <th scope="col">Дата последней проверки</th>
+                    <th scope="col">Код ответа</th>
                 </tr>
             </thead>
             <tbody>
-            {% for id, name, last_check in urls %}
+            {% for id, name, last_check, status_code in urls %}
                 <tr>
                     <td>{{ id }}</td>
                     <td>
                         <a href="{{ url_for('show_url', id=id) }}">{{ name }}</a>
                     </td>
                     <td>{{ last_check or '' }}</td>
+                    <td>{{ status_code or '' }}</td>
                 </tr>
             {% endfor %}
             </tbody>

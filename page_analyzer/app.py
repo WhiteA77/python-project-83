@@ -15,8 +15,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 MAX_URL_LENGTH = 255  # Максимальная длина URL согласно стандарту
 
+
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
+
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -46,13 +48,21 @@ def index():
             return render_template("index.html", url=url)
     return render_template("index.html")
 
+
 @app.route("/urls")
 def urls():
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute("SELECT id, name, created_at FROM urls ORDER BY id DESC")
+            cur.execute("""
+                SELECT u.id, u.name, u.created_at, MAX(c.created_at) AS last_check
+                FROM urls u
+                LEFT JOIN url_checks c ON u.id = c.url_id
+                GROUP BY u.id
+                ORDER BY u.id DESC
+            """)
             urls_list = cur.fetchall()
     return render_template("urls.html", urls=urls_list)
+
 
 @app.route("/urls/<int:id>")
 def show_url(id):
@@ -60,7 +70,29 @@ def show_url(id):
         with conn.cursor() as cur:
             cur.execute("SELECT id, name, created_at FROM urls WHERE id=%s", (id,))
             url_item = cur.fetchone()
-    if not url_item:
-        flash("Страница не найдена", "danger")
-        return redirect(url_for("urls"))
-    return render_template("show_url.html", url=url_item)
+            if not url_item:
+                flash("Страница не найдена", "danger")
+                return redirect(url_for("urls"))
+
+            cur.execute("""
+                SELECT id, status_code, h1, title, description, created_at
+                FROM url_checks
+                WHERE url_id=%s
+                ORDER BY created_at DESC
+            """, (id,))
+            checks = cur.fetchall()
+
+    return render_template("show_url.html", url=url_item, checks=checks)
+
+
+@app.route("/urls/<int:id>/checks", methods=["POST"])
+def create_check(id):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO url_checks (url_id, created_at) VALUES (%s, %s)",
+                (id, datetime.now()),
+            )
+            conn.commit()
+    flash("Проверка успешно добавлена", "success")
+    return redirect(url_for("show_url", id=id))

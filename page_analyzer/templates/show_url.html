@@ -23,6 +23,7 @@
     <div class="container my-4">
         <h1 class="mb-4">Информация об адресе</h1>
 
+        <!-- Инфо о сайте -->
         <table class="table table-bordered table-hover table-sm align-middle" data-test="url">
             <tbody>
                 <tr>
@@ -37,6 +38,44 @@
                     <th scope="row">Дата добавления</th>
                     <td>{{ url[2] }}</td>
                 </tr>
+            </tbody>
+        </table>
+
+        <!-- Кнопка для проверки -->
+        <form method="post" action="{{ url_for('create_check', id=url[0]) }}">
+            <button type="submit" class="btn btn-primary mb-4" data-test="check">Запустить проверку</button>
+        </form>
+
+        <!-- Таблица проверок -->
+        <h2 class="mb-3">Проверки</h2>
+        <table class="table table-bordered table-hover table-sm align-middle" data-test="checks">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Код ответа</th>
+                    <th>h1</th>
+                    <th>title</th>
+                    <th>description</th>
+                    <th>Дата создания</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if checks %}
+                    {% for check in checks %}
+                        <tr>
+                            <td>{{ check[0] }}</td>
+                            <td>{{ check[1] or '' }}</td>
+                            <td>{{ check[2] or '' }}</td>
+                            <td>{{ check[3] or '' }}</td>
+                            <td>{{ check[4] or '' }}</td>
+                            <td>{{ check[5] }}</td>
+                        </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center">Проверок пока нет</td>
+                    </tr>
+                {% endif %}
             </tbody>
         </table>
 
