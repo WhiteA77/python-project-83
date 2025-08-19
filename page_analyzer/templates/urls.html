@@ -38,22 +38,28 @@
             <thead class="table-light">
                 <tr>
                     <th scope="col">ID</th>
-                    <th scope="col">Имя</th>
+                    <th scope="col">Сайт</th>
                     <th scope="col">Дата последней проверки</th>
                     <th scope="col">Код ответа</th>
                 </tr>
             </thead>
             <tbody>
-            {% for id, name, last_check, status_code in urls %}
+            {% if urls %}
+                {% for id, name, last_check, status_code in urls %}
+                    <tr>
+                        <td>{{ id }}</td>
+                        <td>
+                            <a href="{{ url_for('show_url', id=id) }}">{{ name }}</a>
+                        </td>
+                        <td>{{ last_check or '' }}</td>
+                        <td>{{ status_code or '' }}</td>
+                    </tr>
+                {% endfor %}
+            {% else %}
                 <tr>
-                    <td>{{ id }}</td>
-                    <td>
-                        <a href="{{ url_for('show_url', id=id) }}">{{ name }}</a>
-                    </td>
-                    <td>{{ last_check or '' }}</td>
-                    <td>{{ status_code or '' }}</td>
+                    <td colspan="4" class="text-center">Сайтов пока нет</td>
                 </tr>
-            {% endfor %}
+            {% endif %}
             </tbody>
         </table>
     </div>

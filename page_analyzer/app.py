@@ -3,9 +3,11 @@ from datetime import datetime
 from urllib.parse import urlparse
 
 import psycopg2
+import requests
 import validators
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
+from requests.exceptions import RequestException
 
 load_dotenv()
 app = Flask(__name__)
@@ -27,7 +29,11 @@ def index():
         if not url or not validators.url(url) or len(url) > MAX_URL_LENGTH:
             flash("Некорректный URL", "danger")
             return render_template("index.html", url=url)
-        url_norm = urlparse(url).geturl()
+
+        # Нормализация URL
+        parsed = urlparse(url)
+        url_norm = f"{parsed.scheme}://{parsed.netloc}"
+
         try:
             with get_conn() as conn:
                 with conn.cursor() as cur:
@@ -46,6 +52,7 @@ def index():
         except Exception:
             flash("Ошибка при добавлении", "danger")
             return render_template("index.html", url=url)
+
     return render_template("index.html")
 
 
@@ -54,7 +61,10 @@ def urls():
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute("""
-                SELECT u.id, u.name, u.created_at, MAX(c.created_at) AS last_check
+                SELECT u.id,
+                       u.name,
+                       MAX(c.created_at) AS last_check,
+                       MAX(c.status_code) AS last_status
                 FROM urls u
                 LEFT JOIN url_checks c ON u.id = c.url_id
                 GROUP BY u.id
@@ -89,10 +99,32 @@ def show_url(id):
 def create_check(id):
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO url_checks (url_id, created_at) VALUES (%s, %s)",
-                (id, datetime.now()),
-            )
-            conn.commit()
-    flash("Проверка успешно добавлена", "success")
+            # Получаем сам URL из базы
+            cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
+            row = cur.fetchone()
+            if not row:
+                flash("Сайт не найден", "danger")
+                return redirect(url_for("urls"))
+
+            url = row[0]
+
+            try:
+                response = requests.get(url, timeout=5)
+                response.raise_for_status()
+                status_code = response.status_code
+
+                # Сохраняем только если запрос успешный
+                cur.execute(
+                    """
+                    INSERT INTO url_checks (url_id, status_code, created_at)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (id, status_code, datetime.now()),
+                )
+                conn.commit()
+                flash("Страница успешно проверена", "success")
+
+            except RequestException:
+                flash("Произошла ошибка при проверке", "danger")
+
     return redirect(url_for("show_url", id=id))

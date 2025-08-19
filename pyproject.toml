@@ -10,5 +10,6 @@ dependencies = [
     "python-dotenv",
     "psycopg2-binary",
     "validators",
+    "requests",
     "ruff"
 ]
