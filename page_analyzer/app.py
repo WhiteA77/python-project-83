@@ -93,7 +93,7 @@ def urls():
                        MAX(c.created_at) AS last_check,
                        (SELECT status_code FROM url_checks 
                         WHERE url_id = u.id 
-                        ORDER BY created_at DESC LIMIT 1) AS last_status
+                        ORDER BY created_at DESC LIMIT 1) AS status_code
                 FROM urls u
                 LEFT JOIN url_checks c ON u.id = c.url_id
                 GROUP BY u.id
