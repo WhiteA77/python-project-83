@@ -4,6 +4,7 @@ from urllib.parse import urlparse
 
 import psycopg2
 import requests
+import validators
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
@@ -14,51 +15,23 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-MAX_URL_LENGTH = 255
+
+MAX_URL_LENGTH = 255  # Максимальная длина URL согласно стандарту
+
 
 def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
-def init_db():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS urls (
-                    id SERIAL PRIMARY KEY,
-                    name VARCHAR(255) UNIQUE NOT NULL,
-                    created_at TIMESTAMP NOT NULL
-                )
-            """)
-            cur.execute("""
-                CREATE TABLE IF NOT EXISTS url_checks (
-                    id SERIAL PRIMARY KEY,
-                    url_id INTEGER REFERENCES urls(id) ON DELETE CASCADE,
-                    status_code INTEGER,
-                    h1 VARCHAR(255),
-                    title VARCHAR(255),
-                    description TEXT,
-                    created_at TIMESTAMP NOT NULL
-                )
-            """)
-            conn.commit()
-
-def validate_url(url):
-    try:
-        result = urlparse(url)
-        return all([result.scheme in ['http', 'https'], result.netloc])
-    except:
-        return False
-
-init_db()
 
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         url = request.form.get("url")
-        if not url or not validate_url(url) or len(url) > MAX_URL_LENGTH:
+        if not url or not validators.url(url) or len(url) > MAX_URL_LENGTH:
             flash("Некорректный URL", "danger")
             return render_template("index.html", url=url)
 
+        # Нормализация URL
         parsed = urlparse(url)
         url_norm = f"{parsed.scheme}://{parsed.netloc}"
 
@@ -83,17 +56,16 @@ def index():
 
     return render_template("index.html")
 
+
 @app.route("/urls")
 def urls():
     with get_conn() as conn:
         with conn.cursor() as cur:
-            # ИСПРАВЛЕННЫЙ ЗАПРОС:
             cur.execute("""
-                SELECT u.id, u.name, 
+                SELECT u.id,
+                       u.name,
                        MAX(c.created_at) AS last_check,
-                       (SELECT status_code FROM url_checks 
-                        WHERE url_id = u.id 
-                        ORDER BY created_at DESC LIMIT 1) AS status_code
+                       MAX(c.status_code) AS last_status
                 FROM urls u
                 LEFT JOIN url_checks c ON u.id = c.url_id
                 GROUP BY u.id
@@ -101,6 +73,7 @@ def urls():
             """)
             urls_list = cur.fetchall()
     return render_template("urls.html", urls=urls_list)
+
 
 @app.route("/urls/<int:id>")
 def show_url(id):
@@ -122,10 +95,12 @@ def show_url(id):
 
     return render_template("show_url.html", url=url_item, checks=checks)
 
+
 @app.route("/urls/<int:id>/checks", methods=["POST"])
 def create_check(id):
     with get_conn() as conn:
         with conn.cursor() as cur:
+            # Получаем сам URL из базы
             cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
             row = cur.fetchone()
             if not row:
@@ -139,14 +114,15 @@ def create_check(id):
                 status_code = response.status_code
                 html = response.text
 
+                # Парсинг HTML
                 soup = BeautifulSoup(html, "html.parser")
-                
-                h1 = soup.h1.get_text().strip() if soup.h1 else None
-                title = soup.title.get_text().strip() if soup.title else None
-                
+
+                h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
+                title = soup.title.string.strip() if soup.title and soup.title.string else None
                 description_tag = soup.find("meta", attrs={"name": "description"})
                 description = description_tag["content"].strip() if description_tag and description_tag.get("content") else None
 
+                # Сохраняем результат в БД
                 cur.execute(
                     """
                     INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
