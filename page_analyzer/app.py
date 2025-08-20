@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 import psycopg2
 import requests
 import validators
+from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 from requests.exceptions import RequestException
@@ -109,17 +110,25 @@ def create_check(id):
             url = row[0]
 
             try:
-                response = requests.get(url, timeout=5)
-                response.raise_for_status()
+                response = requests.get(url, timeout=10)
                 status_code = response.status_code
+                html = response.text
 
-                # Сохраняем только если запрос успешный
+                # Парсинг HTML
+                soup = BeautifulSoup(html, "html.parser")
+
+                h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
+                title = soup.title.string.strip() if soup.title and soup.title.string else None
+                description_tag = soup.find("meta", attrs={"name": "description"})
+                description = description_tag["content"].strip() if description_tag and description_tag.get("content") else None
+
+                # Сохраняем результат в БД
                 cur.execute(
                     """
-                    INSERT INTO url_checks (url_id, status_code, created_at)
-                    VALUES (%s, %s, %s)
+                    INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
                     """,
-                    (id, status_code, datetime.now()),
+                    (id, status_code, h1, title, description, datetime.now()),
                 )
                 conn.commit()
                 flash("Страница успешно проверена", "success")

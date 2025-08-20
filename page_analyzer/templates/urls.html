@@ -51,7 +51,7 @@
                         <td>
                             <a href="{{ url_for('show_url', id=id) }}">{{ name }}</a>
                         </td>
-                        <td>{{ last_check or '' }}</td>
+                        <td>{{ last_check.strftime('%d.%m.%Y') if last_check else '' }}</td>
                         <td>{{ status_code or '' }}</td>
                     </tr>
                 {% endfor %}
