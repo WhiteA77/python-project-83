@@ -87,13 +87,16 @@ def index():
 def urls():
     with get_conn() as conn:
         with conn.cursor() as cur:
+            # ИСПРАВЛЕННЫЙ ЗАПРОС:
             cur.execute("""
                 SELECT u.id, u.name, 
                        MAX(c.created_at) AS last_check,
-                       c.status_code
+                       (SELECT status_code FROM url_checks 
+                        WHERE url_id = u.id 
+                        ORDER BY created_at DESC LIMIT 1) AS last_status
                 FROM urls u
                 LEFT JOIN url_checks c ON u.id = c.url_id
-                GROUP BY u.id, c.status_code
+                GROUP BY u.id
                 ORDER BY u.id DESC
             """)
             urls_list = cur.fetchall()
