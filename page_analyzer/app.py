@@ -15,7 +15,6 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-
 MAX_URL_LENGTH = 255  # Максимальная длина URL согласно стандарту
 
 
@@ -23,117 +22,151 @@ def get_conn():
     return psycopg2.connect(DATABASE_URL)
 
 
+# Главная
 @app.route("/", methods=["GET", "POST"])
 def index():
+    # Если форма шлёт POST на "/", делаем 307 на /urls — тесты ожидают запрос именно к /urls
     if request.method == "POST":
-        url = request.form.get("url")
-        if not url or not validators.url(url) or len(url) > MAX_URL_LENGTH:
-            flash("Некорректный URL", "danger")
-            return render_template("index.html", url=url)
-
-        # Нормализация URL
-        parsed = urlparse(url)
-        url_norm = f"{parsed.scheme}://{parsed.netloc}"
-
-        try:
-            with get_conn() as conn:
-                with conn.cursor() as cur:
-                    cur.execute("SELECT id FROM urls WHERE name=%s", (url_norm,))
-                    row = cur.fetchone()
-                    if row:
-                        flash("Страница уже существует", "info")
-                        return redirect(url_for("show_url", id=row[0]))
-                    cur.execute(
-                        "INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
-                        (url_norm, datetime.now()),
-                    )
-                    new_id = cur.fetchone()[0]
-                    flash("Страница успешно добавлена", "success")
-                    return redirect(url_for("show_url", id=new_id))
-        except Exception:
-            flash("Ошибка при добавлении", "danger")
-            return render_template("index.html", url=url)
-
+        return redirect(url_for("urls_create"), code=307)
     return render_template("index.html")
 
 
-@app.route("/urls")
-def urls():
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("""
-                SELECT u.id,
-                       u.name,
-                       MAX(c.created_at) AS last_check,
-                       MAX(c.status_code) AS last_status
-                FROM urls u
-                LEFT JOIN url_checks c ON u.id = c.url_id
-                GROUP BY u.id
-                ORDER BY u.id DESC
-            """)
-            urls_list = cur.fetchall()
+# Создание нового URL
+@app.post("/urls")
+def urls_create():
+    url = request.form.get("url", "").strip()
+
+    # Валидация
+    if not url or not validators.url(url) or len(url) > MAX_URL_LENGTH:
+        flash("Некорректный URL", "danger")
+        # Возвращаем ту же форму и 422 — тесты это ожидают
+        return render_template("index.html", url=url), 422
+
+    # Нормализация URL: схема + хост
+    parsed = urlparse(url)
+    url_norm = f"{parsed.scheme}://{parsed.netloc}"
+
+    try:
+        with get_conn() as conn, conn.cursor() as cur:
+            # Существующий URL?
+            cur.execute("SELECT id FROM urls WHERE name=%s", (url_norm,))
+            row = cur.fetchone()
+            if row:
+                flash("Страница уже существует", "info")
+                return redirect(url_for("show_url", id=row[0]))
+
+            # Создание
+            cur.execute(
+                "INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
+                (url_norm, datetime.now()),
+            )
+            new_id = cur.fetchone()[0]
+            flash("Страница успешно добавлена", "success")
+            return redirect(url_for("show_url", id=new_id))
+
+    except Exception:
+        flash("Ошибка при добавлении", "danger")
+        return render_template("index.html", url=url), 500
+
+
+# Список всех URL
+@app.get("/urls")
+def urls_index():
+    with get_conn() as conn, conn.cursor() as cur:
+        # Берём именно ПОСЛЕДНЮЮ проверку через LATERAL
+        cur.execute(
+            """
+            SELECT
+                u.id,
+                u.name,
+                lc.created_at AS last_check,
+                lc.status_code AS last_status
+            FROM urls u
+            LEFT JOIN LATERAL (
+                SELECT status_code, created_at
+                FROM url_checks
+                WHERE url_id = u.id
+                ORDER BY created_at DESC
+                LIMIT 1
+            ) AS lc ON true
+            ORDER BY u.id DESC
+            """
+        )
+        urls_list = cur.fetchall()
     return render_template("urls.html", urls=urls_list)
 
 
-@app.route("/urls/<int:id>")
+# Страница конкретного URL
+@app.get("/urls/<int:id>")
 def show_url(id):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute("SELECT id, name, created_at FROM urls WHERE id=%s", (id,))
-            url_item = cur.fetchone()
-            if not url_item:
-                flash("Страница не найдена", "danger")
-                return redirect(url_for("urls"))
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT id, name, created_at FROM urls WHERE id=%s", (id,))
+        url_item = cur.fetchone()
+        if not url_item:
+            flash("Страница не найдена", "danger")
+            return redirect(url_for("urls_index"))
 
-            cur.execute("""
-                SELECT id, status_code, h1, title, description, created_at
-                FROM url_checks
-                WHERE url_id=%s
-                ORDER BY created_at DESC
-            """, (id,))
-            checks = cur.fetchall()
+        cur.execute(
+            """
+            SELECT id, status_code, h1, title, description, created_at
+            FROM url_checks
+            WHERE url_id=%s
+            ORDER BY created_at DESC
+            """,
+            (id,),
+        )
+        checks = cur.fetchall()
 
     return render_template("show_url.html", url=url_item, checks=checks)
 
 
-@app.route("/urls/<int:id>/checks", methods=["POST"])
+# Проверка конкретного URL
+@app.post("/urls/<int:id>/checks")
 def create_check(id):
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            # Получаем сам URL из базы
-            cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
-            row = cur.fetchone()
-            if not row:
-                flash("Сайт не найден", "danger")
-                return redirect(url_for("urls"))
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT name FROM urls WHERE id=%s", (id,))
+        row = cur.fetchone()
+        if not row:
+            flash("Сайт не найден", "danger")
+            return redirect(url_for("urls_index"))
 
-            url = row[0]
+        url = row[0]
 
-            try:
-                response = requests.get(url, timeout=10)
-                status_code = response.status_code
-                html = response.text
+        try:
+            # Запрашиваем страницу
+            response = requests.get(url, timeout=10)
+            # Важно: поднимет исключение на 4xx/5xx -> проверка НЕ добавляется
+            response.raise_for_status()
 
-                # Парсинг HTML
-                soup = BeautifulSoup(html, "html.parser")
+            status_code = response.status_code
+            html = response.text
 
-                h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
-                title = soup.title.string.strip() if soup.title and soup.title.string else None
-                description_tag = soup.find("meta", attrs={"name": "description"})
-                description = description_tag["content"].strip() if description_tag and description_tag.get("content") else None
+            # Парсинг SEO-полей
+            soup = BeautifulSoup(html, "html.parser")
 
-                # Сохраняем результат в БД
-                cur.execute(
-                    """
-                    INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
-                    VALUES (%s, %s, %s, %s, %s, %s)
-                    """,
-                    (id, status_code, h1, title, description, datetime.now()),
-                )
-                conn.commit()
-                flash("Страница успешно проверена", "success")
+            h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
+            title = soup.title.string.strip() if soup.title and soup.title.string else None
 
-            except RequestException:
-                flash("Произошла ошибка при проверке", "danger")
+            description_tag = soup.find("meta", attrs={"name": "description"})
+            description = (
+                description_tag.get("content", "").strip()
+                if description_tag and description_tag.get("content")
+                else None
+            )
+
+            # Сохраняем успешную проверку
+            cur.execute(
+                """
+                INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
+                VALUES (%s, %s, %s, %s, %s, %s)
+                """,
+                (id, status_code, h1, title, description, datetime.now()),
+            )
+            conn.commit()
+            flash("Страница успешно проверена", "success")
+
+        except RequestException:
+            # При ошибке — ничего не пишем в url_checks
+            flash("Произошла ошибка при проверке", "danger")
 
     return redirect(url_for("show_url", id=id))
