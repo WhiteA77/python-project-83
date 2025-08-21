@@ -54,7 +54,8 @@ def urls_create():
 
             # Создание
             cur.execute(
-                "INSERT INTO urls (name, created_at) VALUES (%s, %s) RETURNING id",
+                """INSERT INTO urls (name, created_at)
+                VALUES (%s, %s) RETURNING id""",
                 (url_norm, datetime.now()),
             )
             new_id = cur.fetchone()[0]
