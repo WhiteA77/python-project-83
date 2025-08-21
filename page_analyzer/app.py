@@ -15,7 +15,7 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
 DATABASE_URL = os.getenv("DATABASE_URL")
-MAX_URL_LENGTH = 255  # Максимальная длина URL согласно стандарту
+MAX_URL_LENGTH = 255
 
 
 def get_conn():
@@ -25,7 +25,6 @@ def get_conn():
 # Главная
 @app.route("/", methods=["GET", "POST"])
 def index():
-    # Если форма шлёт POST на "/", делаем 307 на /urls — тесты ожидают запрос именно к /urls
     if request.method == "POST":
         return redirect(url_for("urls_create"), code=307)
     return render_template("index.html")
@@ -39,7 +38,6 @@ def urls_create():
     # Валидация
     if not url or not validators.url(url) or len(url) > MAX_URL_LENGTH:
         flash("Некорректный URL", "danger")
-        # Возвращаем ту же форму и 422 — тесты это ожидают
         return render_template("index.html", url=url), 422
 
     # Нормализация URL: схема + хост
@@ -48,7 +46,6 @@ def urls_create():
 
     try:
         with get_conn() as conn, conn.cursor() as cur:
-            # Существующий URL?
             cur.execute("SELECT id FROM urls WHERE name=%s", (url_norm,))
             row = cur.fetchone()
             if row:
@@ -73,7 +70,6 @@ def urls_create():
 @app.get("/urls")
 def urls_index():
     with get_conn() as conn, conn.cursor() as cur:
-        # Берём именно ПОСЛЕДНЮЮ проверку через LATERAL
         cur.execute(
             """
             SELECT
@@ -133,9 +129,7 @@ def create_check(id):
         url = row[0]
 
         try:
-            # Запрашиваем страницу
             response = requests.get(url, timeout=10)
-            # Важно: поднимет исключение на 4xx/5xx -> проверка НЕ добавляется
             response.raise_for_status()
 
             status_code = response.status_code
@@ -145,7 +139,11 @@ def create_check(id):
             soup = BeautifulSoup(html, "html.parser")
 
             h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
-            title = soup.title.string.strip() if soup.title and soup.title.string else None
+            title = (
+                soup.title.string.strip()
+                if soup.title and soup.title.string
+                else None
+            )
 
             description_tag = soup.find("meta", attrs={"name": "description"})
             description = (
@@ -157,7 +155,9 @@ def create_check(id):
             # Сохраняем успешную проверку
             cur.execute(
                 """
-                INSERT INTO url_checks (url_id, status_code, h1, title, description, created_at)
+                INSERT INTO url_checks (
+                    url_id, status_code, h1, title, description, created_at
+                )
                 VALUES (%s, %s, %s, %s, %s, %s)
                 """,
                 (id, status_code, h1, title, description, datetime.now()),
@@ -166,7 +166,6 @@ def create_check(id):
             flash("Страница успешно проверена", "success")
 
         except RequestException:
-            # При ошибке — ничего не пишем в url_checks
             flash("Произошла ошибка при проверке", "danger")
 
     return redirect(url_for("show_url", id=id))
