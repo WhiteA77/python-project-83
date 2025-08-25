@@ -18,6 +18,11 @@ jobs:
       with:
         python-version: '3.x'
 
+    - name: Run tests with coverage
+      run: |
+        pip install pytest pytest-cov
+        pytest --cov=page_analyzer --cov-report xml
+
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
       env:
@@ -28,3 +33,4 @@ jobs:
           -Dsonar.projectKey=WhiteA77_python-project-83
           -Dsonar.organization=whitea77
           -Dsonar.sources=.
+          -Dsonar.python.coverage.reportPaths=coverage.xml
