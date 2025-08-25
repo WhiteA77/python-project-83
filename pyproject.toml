@@ -14,3 +14,6 @@ dependencies = [
     "ruff",
     "beautifulsoup4"
 ]
+
+[project.optional-dependencies]
+test = ["pytest"]
