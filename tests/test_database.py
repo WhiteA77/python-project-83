@@ -6,12 +6,23 @@ import types
 
 import pytest
 
-sys.modules["psycopg2"] = types.SimpleNamespace(connect=lambda *args, **kwargs: None)
-sys.modules["dotenv"] = types.SimpleNamespace(load_dotenv=lambda *args, **kwargs: None)
+sys.modules["psycopg2"] = types.SimpleNamespace(
+    connect=lambda *args, **kwargs: None
+)
+
+sys.modules["dotenv"] = types.SimpleNamespace(
+    load_dotenv=lambda *args, **kwargs: None
+)
 
 spec = importlib.util.spec_from_file_location(
     "database",
-    pathlib.Path(__file__).resolve().parents[1] / "page_analyzer" / "database.py",
+    (
+        pathlib.Path(__file__)
+        .resolve()
+        .parents[1]
+        / "page_analyzer"
+        / "database.py"
+    ),
 )
 database = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(database)

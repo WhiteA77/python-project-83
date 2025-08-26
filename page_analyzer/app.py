@@ -1,9 +1,7 @@
 import os
 from urllib.parse import urlparse
 
-import requests
 import validators
-from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 from requests.exceptions import RequestException
@@ -15,6 +13,7 @@ from .database import (
     insert_url,
     insert_url_check,
 )
+from .parser import fetch_html, parse_seo
 
 load_dotenv()
 app = Flask(__name__)
@@ -89,26 +88,8 @@ def create_check(id):
     url = url_item[1]
 
     try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-
-        status_code = response.status_code
-        html = response.text
-
-        soup = BeautifulSoup(html, "html.parser")
-
-        h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
-        title = (
-            soup.title.string.strip()
-            if soup.title and soup.title.string
-            else None
-        )
-        description_tag = soup.find("meta", attrs={"name": "description"})
-        description = (
-            description_tag.get("content", "").strip()
-            if description_tag and description_tag.get("content")
-            else None
-        )
+        html, status_code = fetch_html(url, timeout=10)
+        h1, title, description = parse_seo(html)
 
         insert_url_check(id, status_code, h1, title, description)
         flash("Страница успешно проверена", "success")

@@ -16,7 +16,10 @@ build:
 	./build.sh
 
 lint:
-	uv run ruff check page_analyzer
+	uv run ruff check page_analyzer tests
 
 lint-fix:
-	uv run ruff check --fix page_analyzer
+	uv run ruff check --fix page_analyzer tests
+
+test:
+	uv run pytest

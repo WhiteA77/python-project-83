@@ -1,6 +1,6 @@
-# ruff.toml
 line-length = 80
 
+[lint]
 select = [
     "E",   # pycodestyle errors
     "F",   # pyflakes
@@ -15,10 +15,10 @@ select = [
 ]
 
 ignore = [
-    "E501",  # line too long (handled by line-length)
-    "F401",  # unused imports (sometimes needed for __all__)
-    "PLR0913", # Too many arguments
+    "E501",     # line too long
+    "F401",     # unused imports (иногда нужно для __all__)
+    "PLR0913",  # too many arguments
 ]
 
-[isort]
+[lint.isort]
 known-first-party = ["page_analyzer"]
