@@ -40,7 +40,10 @@ class FakeSoup:
     def find(self, tag, attrs=None):
         
         if tag == "meta" and attrs and attrs.get("name") == "description":
-            pattern = r'<meta[^>]*name=["\\\']description["\\\'][^>]*content=["\\\'](.*?)["\\\']'
+            pattern = (
+                r'<meta[^>]*name=["\\\']description["\\\']'
+                r'[^>]*content=["\\\'](.*?)["\\\']'
+            )
             match = re.search(pattern, self.html, re.IGNORECASE | re.DOTALL)
             if match:
                 return types.SimpleNamespace(

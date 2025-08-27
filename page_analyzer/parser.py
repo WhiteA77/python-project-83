@@ -1,6 +1,5 @@
 import requests
 from bs4 import BeautifulSoup
-from requests.exceptions import RequestException
 
 
 def fetch_html(url: str, timeout: int = 10) -> tuple[str, int]:
