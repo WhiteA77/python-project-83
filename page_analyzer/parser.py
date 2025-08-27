@@ -33,8 +33,8 @@ def parse_seo(html: str) -> tuple[str | None, str | None, str | None]:
         ``None``.
     """
     soup = BeautifulSoup(html, "html.parser")
-    h1 = soup.h1.string.strip() if soup.h1 and soup.h1.string else None
-    title = soup.title.string.strip() if soup.title and soup.title.string else None
+    h1 = soup.h1.get_text(strip=True) if soup.h1 else None
+    title = soup.title.get_text(strip=True) if soup.title else None
     description_tag = soup.find("meta", attrs={"name": "description"})
     description = (
         description_tag.get("content", "").strip()
