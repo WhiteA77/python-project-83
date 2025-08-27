@@ -3,7 +3,6 @@ import re
 import sys
 import types
 from http import HTTPStatus
-from pathlib import Path
 
 import pytest
 
@@ -62,9 +61,10 @@ def parser(monkeypatch):
     bs4_stub.BeautifulSoup = FakeSoup
     monkeypatch.setitem(sys.modules, "bs4", bs4_stub)
 
-    spec = importlib.util.spec_from_file_location(
-        "parser", "page_analyzer/parser.py",
+    parser_path = (
+        Path(__file__).resolve().parents[1] / "page_analyzer" / "parser.py"
     )
+    spec = importlib.util.spec_from_file_location("parser", parser_path)
     parser_module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(parser_module)
     return parser_module
