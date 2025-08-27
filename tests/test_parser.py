@@ -3,6 +3,7 @@ import re
 import sys
 import types
 from http import HTTPStatus
+from pathlib import Path
 
 import pytest
 
