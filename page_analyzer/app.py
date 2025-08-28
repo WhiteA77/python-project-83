@@ -18,10 +18,7 @@ load_dotenv()
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 
-MAX_URL_LENGTH = 255
 
-
-# Главная
 @app.route("/", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
@@ -29,12 +26,11 @@ def index():
     return render_template("index.html")
 
 
-# Создание нового URL
 @app.post("/urls")
 def urls_create():
     url = request.form.get("url", "").strip()
 
-    if not validate_url(url, MAX_URL_LENGTH):
+    if not validate_url(url):
         flash("Некорректный URL", "danger")
         return render_template("index.html", url=url), 422
 
@@ -55,14 +51,12 @@ def urls_create():
         return render_template("index.html", url=url), 500
 
 
-# Список всех URL
 @app.get("/urls")
 def urls_index():
     urls_list = fetch_urls_with_last_check()
     return render_template("urls.html", urls=urls_list)
 
 
-# Страница конкретного URL
 @app.get("/urls/<int:id>")
 def show_url(id):
     url_item, checks = fetch_url(id)
@@ -73,7 +67,6 @@ def show_url(id):
     return render_template("show_url.html", url=url_item, checks=checks)
 
 
-# Проверка конкретного URL
 @app.post("/urls/<int:id>/checks")
 def create_check(id):
     url_item, _ = fetch_url(id)

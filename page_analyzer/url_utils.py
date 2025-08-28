@@ -6,13 +6,11 @@ DEFAULT_MAX_LENGTH = 255
 
 
 def validate_url(url: str, max_length: int = DEFAULT_MAX_LENGTH) -> bool:
-    """Return True if the URL is valid and under `max_length` characters."""
     if not url or len(url) > max_length:
         return False
     return validators.url(url) is True
 
 
 def normalize_url(url: str) -> str:
-    """Normalize a URL to the form scheme://netloc."""
     parsed = urlparse(url)
     return f"{parsed.scheme}://{parsed.netloc}"
