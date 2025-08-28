@@ -12,7 +12,6 @@ class RequestException(Exception):
     pass
 
 
-# Stub "bs4" module with minimal BeautifulSoup implementation
 class FakeSoup:
     def __init__(self, html, parser):
         self.html = html

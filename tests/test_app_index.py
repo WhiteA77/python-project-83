@@ -5,8 +5,9 @@ from pathlib import Path
 
 import pytest
 
-sys.modules["psycopg2"] = types.SimpleNamespace(connect=lambda *args, **kwargs: None)
-sys.modules["dotenv"] = types.SimpleNamespace(load_dotenv=lambda *args, **kwargs: None)
+ns = types.SimpleNamespace
+sys.modules["psycopg2"] = ns(connect=lambda *_, **__: None)
+sys.modules["dotenv"] = ns(load_dotenv=lambda *_, **__: None)
 
 validators_stub = types.ModuleType("validators")
 validators_stub.url = lambda value: value.startswith("http")
@@ -24,7 +25,6 @@ bs4_stub = types.ModuleType("bs4")
 bs4_stub.BeautifulSoup = lambda *args, **kwargs: None
 sys.modules["bs4"] = bs4_stub
 
-# Minimal Flask stub
 _flask = types.ModuleType("flask")
 _flask.current_app = None
 
