@@ -3,13 +3,13 @@ import sys
 import types
 from pathlib import Path
 
-import pytest
-
 validators_stub = types.ModuleType("validators")
 validators_stub.url = lambda value: value.startswith("http")
 sys.modules["validators"] = validators_stub
 
-module_path = Path(__file__).resolve().parents[1] / "page_analyzer" / "url_utils.py"
+module_path = (
+    Path(__file__).resolve().parents[1] / "page_analyzer" / "url_utils.py"
+)
 spec = importlib.util.spec_from_file_location("url_utils", module_path)
 url_utils = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(url_utils)
