@@ -1,7 +1,5 @@
 import os
-from urllib.parse import urlparse
 
-import validators
 from dotenv import load_dotenv
 from flask import Flask, flash, redirect, render_template, request, url_for
 from requests.exceptions import RequestException
@@ -14,6 +12,7 @@ from .database import (
     insert_url_check,
 )
 from .parser import fetch_html, parse_seo
+from .url_utils import normalize_url, validate_url
 
 load_dotenv()
 app = Flask(__name__)
@@ -35,14 +34,11 @@ def index():
 def urls_create():
     url = request.form.get("url", "").strip()
 
-    # Валидация
-    if not url or not validators.url(url) or len(url) > MAX_URL_LENGTH:
+    if not validate_url(url, MAX_URL_LENGTH):
         flash("Некорректный URL", "danger")
         return render_template("index.html", url=url), 422
 
-    # Нормализация URL: схема + хост
-    parsed = urlparse(url)
-    url_norm = f"{parsed.scheme}://{parsed.netloc}"
+    url_norm = normalize_url(url)
 
     try:
         row = find_url_by_name(url_norm)
