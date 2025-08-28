@@ -1,10 +1,8 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 sys.path.append(str(Path(__file__).resolve().parent))
-from test_app_index import OK_STATUS, app
+from test_app_index import app
 
 REDIRECT_STATUS = 302
 

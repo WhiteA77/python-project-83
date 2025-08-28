@@ -1,8 +1,6 @@
 import importlib.util
 from pathlib import Path
 
-import pytest
-
 REDIRECT = 302
 HTTP_OK = 200
 DEFAULT_TIMEOUT = 10
